@@ -1,3 +1,12 @@
+The file is still cut off — it now ends at line 34 with just `- name:` and nothing after it. The build step, upload-artifact step, and the entire `deploy` job are still missing. It seems the paste is getting truncated somewhere in the process (possibly the editor or clipboard cutting it short).
+
+Let me give you the complete file one more time. Please try one of these to avoid truncation:
+- Use GitHub's web editor, paste this in, then **scroll down to confirm line 46 (the last line) is present** before committing.
+- Or edit via a local clone / GitHub CLI (`gh`) if pasting into the browser keeps cutting it off.
+
+Here is the **full, complete file** — all 46 lines:
+
+```yaml name=.github/workflows/pages.yml
 name: Deploy Jekyll site to Pages
 
 on:
@@ -31,4 +40,6 @@ jobs:
           ruby-version: '3.1'
           bundler-cache: true
 
-      - name:
+      - name: Build with Jekyll
+        env:
+          J
