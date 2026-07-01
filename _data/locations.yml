@@ -1,0 +1,17 @@
+- name: "Eiffel Tower"
+  lat: 48.8584
+  lng: 2.2945
+  date: 2024-05-12
+  description: "Visited the Eiffel Tower in Paris."
+
+- name: "Colosseum"
+  lat: 41.8902
+  lng: 12.4922
+  date: 2024-06-20
+  description: "Explored the Colosseum in Rome."
+
+- name: "Statue of Liberty"
+  lat: 40.6892
+  lng: -74.0445
+  date: 2024-08-03
+  description: "Saw the Statue of Liberty in New York."

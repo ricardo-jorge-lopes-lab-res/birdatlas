@@ -1,0 +1,12 @@
+title: Bird Atlas
+description: A map of bird sighting locations, filterable by date
+baseurl: "/birdatlas"
+url: ""
+
+plugins:
+  - jekyll-feed
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md

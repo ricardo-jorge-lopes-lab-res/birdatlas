@@ -1,0 +1,24 @@
+---
+layout: default
+title: Home
+---
+
+<div class="controls">
+  <label for="start-date">From:</label>
+  <input type="date" id="start-date">
+
+  <label for="end-date">To:</label>
+  <input type="date" id="end-date">
+
+  <button id="filter-btn">Filter</button>
+  <button id="reset-btn">Reset</button>
+  <span id="result-count"></span>
+</div>
+
+<div id="map"></div>
+
+<script>
+  // Jekyll injects the data file contents as JSON for the map script to use
+  var locations = {{ site.data.locations | jsonify }};
+</script>
+<script src="{{ '/assets/js/map.js' | relative_url }}"></script>
