@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Home - Bird Atlas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/birdatlas/assets/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Bird Atlas</h1>
+    <p>A map of bird sighting locations, filterable by date</p>
+  </header>
+  <main>
+    <div class="controls">
+  <label for="start-date">From:</label>
+  <input type="date" id="start-date">
+
+  <label for="end-date">To:</label>
+  <input type="date" id="end-date">
+
+  <button id="filter-btn">Filter</button>
+  <button id="reset-btn">Reset</button>
+  <span id="result-count"></span>
+</div>
+
+<div id="map"></div>
+
+<script>
+  // Jekyll injects the data file contents as JSON for the map script to use
+  var locations = [{"name":"Eiffel Tower","lat":48.8584,"lng":2.2945,"date":"2024-05-12","description":"Visited the Eiffel Tower in Paris."},{"name":"Colosseum","lat":41.8902,"lng":12.4922,"date":"2024-06-20","description":"Explored the Colosseum in Rome."},{"name":"Statue of Liberty","lat":40.6892,"lng":-74.0445,"date":"2024-08-03","description":"Saw the Statue of Liberty in New York."}];
+</script>
+<script src="/birdatlas/assets/js/map.js"></script>
+
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</body>
+</html>

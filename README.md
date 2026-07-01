@@ -34,6 +34,6 @@ Then open http://localhost:4000 in your browser.
 ## Deploying with GitHub Pages
 
 1. Go to the repository **Settings > Pages**.
-2. Under **Build and deployment**, set **Source** to "Deploy from a branch".
-3. Select the `main` branch and `/ (root)` folder, then save.
+2. Under **Build and deployment**, set **Source** to "GitHub Actions".
+3. Push to `main` (or run the workflow manually) to trigger the Pages build and deploy workflow.
 4. Your site will be published at `https://ricardo-jorge-lopes-lab-res.github.io/birdatlas/` (note: this repository is currently **private**, so you'll need GitHub Pages with a plan that supports private repo Pages, or make the repository public for Pages to work on the free tier).
