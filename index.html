@@ -1,24 +1,228 @@
----
-layout: default
-title: Home
----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bird Specimens in Portuguese Museum Collections</title>
 
-<div class="controls">
-  <label for="start-date">From:</label>
-  <input type="date" id="start-date">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 
-  <label for="end-date">To:</label>
-  <input type="date" id="end-date">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-  <button id="filter-btn">Filter</button>
-  <button id="reset-btn">Reset</button>
-  <span id="result-count"></span>
+<header id="site-header">
+  <div class="header-inner">
+    <div class="identity">
+      <h1>Bird Specimens in Portuguese Museum Collections</h1>
+      <p class="tagline">Georeferenced ornithological records from three university natural history museums, collected between 1840 and 2017.</p>
+    </div>
+    <dl class="figures">
+      <div><dt>Records</dt><dd>3,460</dd></div>
+      <div><dt>Species</dt><dd>338</dd></div>
+      <div><dt>Families</dt><dd>76</dd></div>
+      <div><dt>Museums</dt><dd>3</dd></div>
+    </dl>
+  </div>
+  <nav id="tabs" role="tablist">
+    <button role="tab" class="tab is-active" data-panel="panel-map" aria-selected="true">Map</button>
+    <button role="tab" class="tab" data-panel="panel-data" aria-selected="false">Records</button>
+    <button role="tab" class="tab" data-panel="panel-team" aria-selected="false">Team &amp; acknowledgements</button>
+  </nav>
+</header>
+
+<div id="load-error" hidden>
+  <strong>The specimen data could not be loaded.</strong>
+  <span id="load-error-detail"></span>
 </div>
 
-<div id="map"></div>
+<main>
 
-<script>
-  // Jekyll injects the data file contents as JSON for the map script to use
-  var locations = {{ site.data.locations | jsonify }};
-</script>
-<script src="{{ '/assets/js/map.js' | relative_url }}"></script>
+  <!-- ───────────────────────── MAP ───────────────────────── -->
+  <section id="panel-map" class="panel is-active" role="tabpanel">
+    <aside id="filters">
+      <div class="field">
+        <span class="field-label">Museum</span>
+        <div id="museum-checks" class="checkbox-group"></div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="order-select">Order</label>
+        <select id="order-select"><option value="">All orders</option></select>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="family-select">Family</label>
+        <select id="family-select"><option value="">All families</option></select>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="genus-select">Genus</label>
+        <select id="genus-select"><option value="">All genera</option></select>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="species-select">Species</label>
+        <select id="species-select"><option value="">All species</option></select>
+      </div>
+
+      <div class="field">
+        <span class="field-label">Year collected <em id="year-range-label"></em></span>
+        <div id="year-slider"></div>
+      </div>
+
+      <button id="reset-btn" class="btn">Reset filters</button>
+
+      <p id="count-display" class="tally">Loading records…</p>
+
+      <p class="rail-note">Click a point to read its full record. The map opens on
+      mainland Portugal; use the extent button to bring Madeira, the Azores and the
+      Selvagens into view. Points at the same locality are drawn on top of one another.</p>
+    </aside>
+
+    <div id="map"></div>
+  </section>
+
+  <!-- ───────────────────────── RECORDS ───────────────────────── -->
+  <section id="panel-data" class="panel" role="tabpanel">
+    <div class="table-toolbar">
+      <input type="search" id="table-search" placeholder="Search species, locality, county, museum…" autocomplete="off">
+      <span id="table-tally" class="tally tally-inline"></span>
+      <button id="csv-btn" class="btn">Download CSV</button>
+    </div>
+
+    <div class="table-scroll">
+      <table id="records-table">
+        <thead>
+          <tr>
+            <th data-key="museum">Museum</th>
+            <th data-key="occurrenceID">Occurrence ID</th>
+            <th data-key="scientificName">Scientific name</th>
+            <th data-key="order">Order</th>
+            <th data-key="family">Family</th>
+            <th data-key="locality">Locality</th>
+            <th data-key="county">County</th>
+            <th data-key="year" class="num">Year</th>
+            <th data-key="coordUncertaintyM" class="num">Uncert. (m)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <button id="prev-page" class="btn">Previous</button>
+      <span id="page-label"></span>
+      <button id="next-page" class="btn">Next</button>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── TEAM ───────────────────────── -->
+  <section id="panel-team" class="panel" role="tabpanel">
+    <div class="reading-column">
+
+      <h2>About this collection</h2>
+      <p>This site brings together georeferenced bird specimen records held by three
+      Portuguese university natural history museums. The records span 1840 to 2017 and
+      cover 338 species across 76 families, from mainland Portugal to Madeira, the
+      Azores and the Selvagens.</p>
+
+      <p>Each record corresponds to a preserved specimen with an associated locality.
+      Coordinates were assigned retrospectively from the original label data, so every
+      record carries a coordinate uncertainty in metres. That uncertainty should be
+      taken into account in any spatial analysis: some historical localities are
+      resolved only to the parish or municipality.</p>
+
+      <h2>Participating collections</h2>
+      <ul class="institutions">
+        <li>
+          <span class="swatch" data-museum="MCUC"></span>
+          <div>
+            <strong>MCUC</strong> — Museu da Ciência da Universidade de Coimbra
+            <span class="inst-count">1,095 records</span>
+          </div>
+        </li>
+        <li>
+          <span class="swatch" data-museum="MHNCUP"></span>
+          <div>
+            <strong>MHNCUP</strong> — Museu de História Natural e da Ciência da Universidade do Porto
+            <span class="inst-count">1,544 records</span>
+          </div>
+        </li>
+        <li>
+          <span class="swatch" data-museum="MUHNAC"></span>
+          <div>
+            <strong>MUHNAC</strong> — Museu Nacional de História Natural e da Ciência, Universidade de Lisboa
+            <span class="inst-count">821 records</span>
+          </div>
+        </li>
+      </ul>
+
+      <h2>Team</h2>
+      <p class="placeholder-note">Replace the entries below with your own team. Each
+      block takes a name, a role, and an affiliation.</p>
+
+      <ul class="team">
+        <li>
+          <strong>Name Surname</strong>
+          <span class="role">Principal investigator</span>
+          <span class="affil">Affiliation, Department</span>
+        </li>
+        <li>
+          <strong>Name Surname</strong>
+          <span class="role">Curator, ornithology collection</span>
+          <span class="affil">Affiliation, Department</span>
+        </li>
+        <li>
+          <strong>Name Surname</strong>
+          <span class="role">Data curation and georeferencing</span>
+          <span class="affil">Affiliation, Department</span>
+        </li>
+        <li>
+          <strong>Name Surname</strong>
+          <span class="role">Database and web development</span>
+          <span class="affil">Affiliation, Department</span>
+        </li>
+      </ul>
+
+      <h2>Acknowledgements</h2>
+      <p class="placeholder-note">Replace with your own acknowledgements and funding
+      references.</p>
+      <p>We thank the curatorial and technical staff of the participating museums for
+      access to the collections and for assistance with specimen data. We also thank
+      the students and volunteers who contributed to label transcription and
+      georeferencing.</p>
+      <p>This work was supported by <span class="fill-in">funder, grant reference</span>.</p>
+
+      <h2>Using these data</h2>
+      <p>The records are available as a single GeoJSON file,
+      <a href="points.geojson">points.geojson</a>, and as CSV from the Records tab.
+      Fields follow Darwin Core terms where applicable.</p>
+
+      <p>Ten records carried nonstandard capitalisation in the scientific name — a
+      lowercase genus, or a capitalised specific epithet — which split the same taxon
+      into two entries in the filters. Those names have been regularised to the
+      conventional binomial form, and the original spelling is kept in each record
+      under <code>scientificNameVerbatim</code>. Genus is derived from the first part
+      of the scientific name.</p>
+      <p class="placeholder-note">Add your preferred citation and licence below.</p>
+      <p class="citation"><span class="fill-in">Authors (year). Bird specimens in
+      Portuguese museum collections. Version 1.0. DOI or URL.</span></p>
+
+      <h2>Contact</h2>
+      <p><span class="fill-in">Name, email address</span></p>
+
+    </div>
+  </section>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.1/nouislider.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
