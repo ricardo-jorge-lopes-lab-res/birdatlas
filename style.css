@@ -366,6 +366,55 @@ select:focus-visible, #table-search:focus-visible, .btn:focus-visible {
   color: var(--ink-soft);
 }
 
+/* ───────── breeding atlas ───────── */
+
+#panel-breeding { flex-direction: row; }
+
+#breeding-rail {
+  width: 300px;
+  flex: none;
+  padding: 20px 20px 32px;
+  border-right: 1px solid var(--rule);
+  overflow-y: auto;
+}
+
+#breeding-map { flex: 1; height: 100%; background: var(--paper-deep); }
+
+.legend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.86rem;
+}
+
+.legend li { display: flex; align-items: center; gap: 8px; }
+
+.key {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid #16262a;
+}
+
+.key.sq[data-nid="4"] { background: #1c6e68; }
+.key.sq[data-nid="3"] { background: #6ba79c; }
+.key.sq[data-nid="2"] { background: #bcd6cd; }
+
+.key.dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--brass);
+  margin: 0 2px;
+}
+
+.note-inline {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
 /* ───────── team panel ───────── */
 
 .reading-column {

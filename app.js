@@ -76,6 +76,8 @@
 
     initMap();
     applyFilters();
+
+    await loadBreedingManifest();
   }
 
   function showLoadError(err) {
@@ -106,6 +108,11 @@
         // Leaflet needs a nudge when its container becomes visible
         if (tab.dataset.panel === "panel-map" && map) {
           setTimeout(() => map.invalidateSize(), 0);
+        }
+        if (tab.dataset.panel === "panel-breeding") {
+          const select = document.getElementById("breeding-species");
+          if (select.value && !breeding.ready) showBreedingSpecies(select.value);
+          setTimeout(() => { if (breeding.map) breeding.map.invalidateSize(); }, 0);
         }
       });
     });
@@ -475,6 +482,260 @@
     if (v == null) return "";
     const s = String(v);
     return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  /* ───────────────────────── breeding atlas ───────────────────────── */
+
+  const NID_COLORS = { 4: "#1c6e68", 3: "#6ba79c", 2: "#bcd6cd" };
+  const NID_LABELS = { 4: "Confirmed", 3: "Probable", 2: "Possible" };
+
+  // Atlas name -> the name used in the specimen data, where the two differ.
+  // Only well-established synonyms belong here; extend as needed.
+  const SPECIES_SYNONYMS = {
+    "Apus melba": "Tachymarptis melba",
+    "Chroicocephalus ridibundus": "Larus ridibundus",
+  };
+
+  const breeding = {
+    map: null,
+    squares: null,
+    points: null,
+    manifest: [],
+    grid: null,      // { etrs: polygon coordinates }
+    cache: {},       // { file: { etrs: nid } }
+    ready: false,
+    loading: false,
+  };
+
+  async function loadBreedingManifest() {
+    const select = document.getElementById("breeding-species");
+    try {
+      const resp = await fetch("breeding/index.json");
+      if (!resp.ok) throw new Error("status " + resp.status);
+      breeding.manifest = await resp.json();
+    } catch (err) {
+      select.innerHTML = '<option value="">No atlas data found</option>';
+      setBreedingTally(
+        "No breeding atlas data is present. Run build_breeding.py and make sure " +
+        "the breeding/ folder is published alongside index.html."
+      );
+      return;
+    }
+
+    select.innerHTML = "";
+    breeding.manifest.forEach((entry, i) => {
+      const opt = document.createElement("option");
+      opt.value = entry.file;
+      opt.textContent = entry.species + "  (" + entry.squares + ")";
+      if (i === 0) select.value = entry.file;
+      select.appendChild(opt);
+    });
+
+    select.addEventListener("change", () => showBreedingSpecies(select.value));
+    document.getElementById("toggle-squares")
+      .addEventListener("change", applyBreedingLayers);
+    document.getElementById("toggle-specimens")
+      .addEventListener("change", applyBreedingLayers);
+  }
+
+  function initBreedingMap() {
+    if (breeding.map) return;
+
+    breeding.map = L.map("breeding-map", { zoomControl: true });
+    breeding.map.fitBounds(MAINLAND);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(breeding.map);
+
+    // dedicated pane keeps the grid behind the specimen points
+    breeding.map.createPane("gridPane");
+    breeding.map.getPane("gridPane").style.zIndex = 350;
+
+    breeding.squares = L.layerGroup().addTo(breeding.map);
+    breeding.points = L.layerGroup().addTo(breeding.map);
+
+    const Extent = L.Control.extend({
+      options: { position: "topleft" },
+      onAdd: function () {
+        const btn = L.DomUtil.create("button", "zoom-extent-btn");
+        btn.innerHTML = "&#9974;";
+        btn.title = "Zoom to full extent of this species";
+        btn.setAttribute("aria-label", "Zoom to full extent of this species");
+        L.DomEvent.disableClickPropagation(btn);
+        L.DomEvent.on(btn, "click", zoomBreedingExtent);
+        return btn;
+      },
+    });
+    breeding.map.addControl(new Extent());
+  }
+
+  // The grid holds every distinct cell once; species files only say which cells
+  // they occupy. Fetched on first use, then reused for every species.
+  async function loadGrid() {
+    if (breeding.grid) return breeding.grid;
+    const resp = await fetch("breeding/grid.geojson");
+    if (!resp.ok) throw new Error("grid.geojson returned " + resp.status);
+    const fc = await resp.json();
+    breeding.grid = {};
+    fc.features.forEach((f) => {
+      breeding.grid[f.properties.etrs] = f.geometry.coordinates;
+    });
+    return breeding.grid;
+  }
+
+  function setBreedingTally(html) {
+    document.getElementById("breeding-tally").innerHTML = html;
+  }
+
+  async function showBreedingSpecies(file) {
+    if (!file || breeding.loading) return;
+    breeding.loading = true;
+    initBreedingMap();
+
+    const entry = breeding.manifest.find((e) => e.file === file);
+    const atlasName = entry ? entry.species : "";
+
+    try {
+      setBreedingTally("Loading…");
+      const grid = await loadGrid();
+
+      let codes = breeding.cache[file];
+      if (!codes) {
+        const resp = await fetch("breeding/sp/" + file);
+        if (!resp.ok) throw new Error(file + " returned " + resp.status);
+        codes = await resp.json();
+        breeding.cache[file] = codes;
+      }
+
+      renderBreeding(atlasName, codes, grid);
+      breeding.ready = true;
+    } catch (err) {
+      setBreedingTally("Could not load the atlas data: " + err.message);
+    } finally {
+      breeding.loading = false;
+    }
+  }
+
+  function renderBreeding(atlasName, codes, grid) {
+    // grid squares, built fresh from the shared geometry
+    const counts = {};
+    const missing = [];
+    const features = [];
+
+    Object.keys(codes).forEach((etrs) => {
+      const coords = grid[etrs];
+      if (!coords) { missing.push(etrs); return; }
+      const nid = codes[etrs];
+      counts[nid] = (counts[nid] || 0) + 1;
+      features.push({
+        type: "Feature",
+        geometry: { type: "Polygon", coordinates: coords },
+        properties: { etrs: etrs, nid: nid },
+      });
+    });
+
+    breeding.squares.clearLayers();
+    L.geoJSON({ type: "FeatureCollection", features: features }, {
+      pane: "gridPane",
+      style: (f) => ({
+        color: "#16262a",
+        weight: 0.6,
+        opacity: 0.55,
+        fillColor: NID_COLORS[f.properties.nid] || "#9bb0ab",
+        fillOpacity: 0.72,
+      }),
+      onEachFeature: (f, layer) => {
+        layer.bindPopup(
+          '<div class="popup-title">' + esc(atlasName) + "</div>" +
+          '<div class="popup-row"><b>Breeding evidence:</b> ' +
+          (NID_LABELS[f.properties.nid] || "code " + f.properties.nid) + "</div>" +
+          '<div class="popup-row"><b>Grid cell:</b> ' + esc(f.properties.etrs) + "</div>"
+        );
+      },
+    }).addTo(breeding.squares);
+
+    // historical specimens of the same species
+    const specimenName = SPECIES_SYNONYMS[atlasName] || atlasName;
+    const specimens = allFeatures.filter(
+      (f) => f.properties.scientificName === specimenName
+    );
+
+    breeding.points.clearLayers();
+    specimens.forEach((f) => {
+      const [lon, lat] = f.geometry.coordinates;
+      L.circleMarker([lat, lon], {
+        radius: 5,
+        color: "#16262a",
+        weight: 1,
+        fillColor: "#a8781f",
+        fillOpacity: 0.95,
+      })
+        .bindPopup(popupHtml(f.properties))
+        .addTo(breeding.points);
+    });
+
+    // tally
+    const parts = [4, 3, 2]
+      .filter((n) => counts[n])
+      .map((n) => counts[n] + " " + NID_LABELS[n].toLowerCase());
+
+    let html =
+      "<strong>" + features.length + "</strong> breeding square" +
+      (features.length === 1 ? "" : "s") +
+      (parts.length ? " (" + parts.join(", ") + ")" : "");
+
+    if (specimens.length) {
+      html += "<br><strong>" + specimens.length + "</strong> historical specimen" +
+              (specimens.length === 1 ? "" : "s");
+      if (specimenName !== atlasName) {
+        html += ' <span class="note-inline">filed as ' + esc(specimenName) + "</span>";
+      }
+    } else {
+      html += '<br><span class="note-inline">No specimens of this species in the collections.</span>';
+    }
+
+    if (missing.length) {
+      html += '<br><span class="note-inline">' + missing.length +
+              " cell(s) not found in the grid.</span>";
+    }
+
+    setBreedingTally(html);
+    applyBreedingLayers();
+    zoomBreedingExtent();
+  }
+
+  function applyBreedingLayers() {
+    if (!breeding.map) return;
+    toggleLayer(breeding.squares, document.getElementById("toggle-squares").checked);
+    toggleLayer(breeding.points, document.getElementById("toggle-specimens").checked);
+  }
+
+  function toggleLayer(layer, on) {
+    if (on && !breeding.map.hasLayer(layer)) breeding.map.addLayer(layer);
+    if (!on && breeding.map.hasLayer(layer)) breeding.map.removeLayer(layer);
+  }
+
+  function zoomBreedingExtent() {
+    if (!breeding.map) return;
+    let bounds = null;
+    const consider = [];
+    if (document.getElementById("toggle-squares").checked) consider.push(breeding.squares);
+    if (document.getElementById("toggle-specimens").checked) consider.push(breeding.points);
+
+    consider.forEach((group) => {
+      group.eachLayer((layer) => {
+        const b = layer.getBounds
+          ? layer.getBounds()
+          : L.latLngBounds(layer.getLatLng(), layer.getLatLng());
+        bounds = bounds ? bounds.extend(b) : L.latLngBounds(b.getSouthWest(), b.getNorthEast());
+      });
+    });
+
+    if (bounds && bounds.isValid()) {
+      breeding.map.fitBounds(bounds, { padding: [30, 30] });
+    }
   }
 
   /* ───────────────────────── util ───────────────────────── */

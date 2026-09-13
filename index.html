@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bird Specimens in Portuguese Museum Collections</title>
+<title>Historical Atlas of Bird Specimens in Portuguese Museum Collections</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,19 +18,20 @@
 <header id="site-header">
   <div class="header-inner">
     <div class="identity">
-      <h1>Bird Specimens in Portuguese Museum Collections</h1>
-      <p class="tagline">Georeferenced ornithological records from three university natural history museums, collected between 1840 and 2017.</p>
+      <h1>Historical Atlas of Bird Specimens in Portuguese Museum Collections</h1>
+      <p class="tagline">Georeferenced ornithological records from three university natural history museums, covering specimens collected between 1840 and 1980.</p>
     </div>
     <dl class="figures">
-      <div><dt>Records</dt><dd>3,460</dd></div>
+      <div><dt>Records</dt><dd>3,457</dd></div>
       <div><dt>Species</dt><dd>338</dd></div>
       <div><dt>Families</dt><dd>76</dd></div>
-      <div><dt>Museums</dt><dd>3</dd></div>
+      <div><dt>Span</dt><dd>1840–1980</dd></div>
     </dl>
   </div>
   <nav id="tabs" role="tablist">
     <button role="tab" class="tab is-active" data-panel="panel-map" aria-selected="true">Map</button>
     <button role="tab" class="tab" data-panel="panel-data" aria-selected="false">Records</button>
+    <button role="tab" class="tab" data-panel="panel-breeding" aria-selected="false">Breeding atlas</button>
     <button role="tab" class="tab" data-panel="panel-team" aria-selected="false">Team &amp; acknowledgements</button>
   </nav>
 </header>
@@ -121,15 +122,54 @@
     </div>
   </section>
 
+  <!-- ───────────────────────── BREEDING ATLAS ───────────────────────── -->
+  <section id="panel-breeding" class="panel" role="tabpanel">
+    <aside id="breeding-rail">
+      <div class="field">
+        <label class="field-label" for="breeding-species">Species</label>
+        <select id="breeding-species"><option value="">Loading…</option></select>
+      </div>
+
+      <div class="field">
+        <span class="field-label">Layers</span>
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="toggle-squares" checked> Breeding grid squares</label>
+          <label><input type="checkbox" id="toggle-specimens" checked> Museum specimens</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field-label">Breeding evidence</span>
+        <ul class="legend" id="breeding-legend">
+          <li><span class="key sq" data-nid="4"></span> Confirmed</li>
+          <li><span class="key sq" data-nid="3"></span> Probable</li>
+          <li><span class="key sq" data-nid="2"></span> Possible</li>
+          <li><span class="key dot"></span> Historical specimen</li>
+        </ul>
+      </div>
+
+      <p id="breeding-tally" class="tally">Select a species.</p>
+
+      <p class="rail-note">Grid squares are 10 × 10 km cells of the ETRS89 / LAEA
+      Europe grid, from the recent breeding atlas (243 species). Points are the historical museum
+      specimens for the same species, drawn on top. Comparing the two shows where
+      the collections overlap present breeding range and where they do not.</p>
+    </aside>
+
+    <div id="breeding-map"></div>
+  </section>
+
   <!-- ───────────────────────── TEAM ───────────────────────── -->
   <section id="panel-team" class="panel" role="tabpanel">
     <div class="reading-column">
 
       <h2>About this collection</h2>
-      <p>This site brings together georeferenced bird specimen records held by three
-      Portuguese university natural history museums. The records span 1840 to 2017 and
-      cover 338 species across 76 families, from mainland Portugal to Madeira, the
-      Azores and the Selvagens.</p>
+      <p>This site is a historical atlas of bird specimens held by three Portuguese
+      university natural history museums. It covers material collected between 1840
+      and 1980 — 3,457 records across 338 species and 76 families, from mainland
+      Portugal to Madeira, the Azores and the Selvagens. Specimens collected after
+      1980 are deliberately excluded, so the maps reflect the historical distribution
+      of the collections rather than present-day occurrence.</p>
 
       <p>Each record corresponds to a preserved specimen with an associated locality.
       Coordinates were assigned retrospectively from the original label data, so every
@@ -143,7 +183,7 @@
           <span class="swatch" data-museum="MCUC"></span>
           <div>
             <strong>MCUC</strong> — Museu da Ciência da Universidade de Coimbra
-            <span class="inst-count">1,095 records</span>
+            <span class="inst-count">1,092 records</span>
           </div>
         </li>
         <li>
@@ -203,12 +243,10 @@
       <a href="points.geojson">points.geojson</a>, and as CSV from the Records tab.
       Fields follow Darwin Core terms where applicable.</p>
 
-      <p>Ten records carried nonstandard capitalisation in the scientific name — a
-      lowercase genus, or a capitalised specific epithet — which split the same taxon
-      into two entries in the filters. Those names have been regularised to the
-      conventional binomial form, and the original spelling is kept in each record
-      under <code>scientificNameVerbatim</code>. Genus is derived from the first part
-      of the scientific name.</p>
+      <p>Scientific names follow conventional binomial form, with genus derived from
+      the first part of the name. One hundred records carry no collection year; these
+      are listed with an unknown year and are always shown on the map, regardless of
+      how the year slider is set.</p>
       <p class="placeholder-note">Add your preferred citation and licence below.</p>
       <p class="citation"><span class="fill-in">Authors (year). Bird specimens in
       Portuguese museum collections. Version 1.0. DOI or URL.</span></p>
